@@ -355,23 +355,32 @@ summary(msinv)
 summary(mscha)
 ### no difference in alpha diversity 
 
-
 #######  ANALYSIS OF BETA DIVERSITY  #################
 ######################################################
 
 ######################################
 #  Heat maps
 ####################################
+
 Shime1<- Shime %>%subset_samples(idinfant=="Infant 1") 
 Shime2<- Shime %>%subset_samples(idinfant=="Infant 2")
 Shime3<- Shime %>%subset_samples(idinfant=="Infant 3")
+Shime1.rar = rarefy_even_depth(Shime1, rngseed=1, 
+                             sample.size=min(sample_sums(Shime1)), 
+                             replace=TRUE, trimOTUs = TRUE, verbose = TRUE)
+Shime2.rar = rarefy_even_depth(Shime2, rngseed=1, 
+                             sample.size=min(sample_sums(Shime2)), 
+                             replace=TRUE, trimOTUs = FALSE, verbose = TRUE)
+Shime3.rar = rarefy_even_depth(Shime3, rngseed=1, 
+                             sample.size=min(sample_sums(Shime3)), 
+                             replace=TRUE, trimOTUs = TRUE, verbose = TRUE)
 
 ##  20 most abundant taxa
-Shime1_20 <- prune_taxa(names(sort(taxa_sums(Shime1),TRUE)[1:20]), Shime)
+Shime1_20 <- prune_taxa(names(sort(taxa_sums(Shime1.rar),TRUE)[1:20]), Shime1.rar)
 
-Shime2_20 <- prune_taxa(names(sort(taxa_sums(Shime2),TRUE)[1:20]), Shime2)
+Shime2_20 <- prune_taxa(names(sort(taxa_sums(Shime2.rar),TRUE)[1:20]), Shime2.rar)
 
-Shime3_20 <- prune_taxa(names(sort(taxa_sums(Shime3),TRUE)[1:20]), Shime3)
+Shime3_20 <- prune_taxa(names(sort(taxa_sums(Shime3.rar),TRUE)[1:20]), Shime3.rar)
 
 ## Heatmap of the 20 most abundant taxa
 dev.off()
@@ -416,12 +425,24 @@ highqualgraphR(heatmap3,"supplementary_figure 3",extension = "tiff",
 
 ######################################################
 ####  NMDS plots   ##############gt
-
+rarefy_even_depth(physeq, sample.size = min(sample_sums(physeq)),
+                  rngseed = FALSE, replace = TRUE, trimOTUs = TRUE, verbose = TRUE)
 # extract and format OTU tables 
-abund_table1<-as.data.frame(t(Shime1@otu_table))
-abund_table2<-as.data.frame(t(Shime2@otu_table))
-abund_table3<-as.data.frame(t(Shime3@otu_table))
+min(sample_sums(Shime1))
 
+otu1.rar = rarefy_even_depth(Shime1, rngseed=1, 
+                             sample.size=min(sample_sums(Shime1)), 
+                             replace=TRUE, trimOTUs = TRUE, verbose = TRUE)
+otu2.rar = rarefy_even_depth(Shime2, rngseed=1, 
+                             sample.size=min(sample_sums(Shime2)), 
+                             replace=TRUE, trimOTUs = TRUE, verbose = TRUE)
+otu3.rar = rarefy_even_depth(Shime3, rngseed=1, 
+                             sample.size=min(sample_sums(Shime3)), 
+                             replace=TRUE, trimOTUs = TRUE, verbose = TRUE)
+
+abund_table1<-as.data.frame(t(otu1.rar@otu_table))
+abund_table2<-as.data.frame(t(otu2.rar@otu_table))
+abund_table3<-as.data.frame(t(otu3.rar@otu_table))
 #format metadata per infant
 meta_table1<-subset(map1, idinfant=="Infant 1")
 meta_table2<-subset(map1, idinfant=="Infant 2")
@@ -441,7 +462,7 @@ shime.dist1<-metaMDS(abund_table1,distance = "bray", trymax = 100)
 stressplot(shime.dist1)
 shime.dist2<-metaMDS(abund_table2,distance = "bray", trymax = 100)
 stressplot(shime.dist2)
-shime.dist3<-metaMDS(abund_table3,distance = "bray", trymax = 100)
+shime.dist3<-metaMDS(abund_table3,distance = "bray", trymax = 500)
 stressplot(shime.dist3)
 
 
@@ -452,16 +473,16 @@ grouping_info1$Infant<-meta_table1$idinfant
 grouping_info1$Treatment<-meta_table1$Treatment
 grouping_info1$Day<-meta_table1$Day
 
-
+meta_table2
 grouping_info2<-data.frame(row.names = meta_table2$SampleName)
 grouping_info2$Infant<-meta_table2$idinfant
-grouping_info2$Treatment<-meta_table2$treatment
-grouping_info2$Day<-meta_table2$day
+grouping_info2$Treatment<-meta_table2$Treatment
+grouping_info2$Day<-meta_table2$Day
 
 grouping_info3<-data.frame(row.names = meta_table3$SampleName)
 grouping_info3$Infant<-meta_table3$idinfant
-grouping_info3$Treatment<-meta_table3$treatment
-grouping_info3$Day<-meta_table3$day
+grouping_info3$Treatment<-meta_table3$Treatment
+grouping_info3$Day<-meta_table3$Day
 
 head(grouping_info1)
 head(grouping_info2)
@@ -791,8 +812,8 @@ library("ggplot2")
 par('mar')
 par(mar=c(1,1,1,1))
 plot1<-gg_ordiplot(shime.dist1, meta_table1$Treatment,  scaling =1, choices = c(1,2), kind = "sd", 
-                   conf=0.95, show.groups="all",
-                   ellipse = TRUE,  label = FALSE, hull = FALSE, spiders = TRUE, pt.size = 3, plot=TRUE)
+                   conf=0.95, show.groups="all", 
+                   ellipse = TRUE,  label = TRUE, hull =FALSE, spiders = TRUE, pt.size = 3, plot=TRUE)
 
 ## extract the plot and edit it in ggplot2
 plotinf1 <-plot1$plot
@@ -801,7 +822,7 @@ plotinf1 <-plotinf1 + theme_bw() +theme(panel.grid = element_blank(),
                                         axis.title.y = element_text(vjust = 2), 
                                         axis.text = element_text(colour = "black", size = 16),
                                         panel.border=element_blank(),
-                                        axis.line = element_line(color = "black"))+ 
+                                        axis.line = element_line(color = "black"), ele)+ 
   expand_limits(y = c(-0.8, 0.8), x = c(-0.8, 0.8))+
   scale_x_continuous(breaks = c(-0.8, -0.4, 0.0, 0.4, 0.8)) +
   scale_y_continuous(breaks = c(-0.8, -0.4, 0.0, 0.4, 0.8))+
@@ -847,8 +868,12 @@ library("ggpubr")
 plotnmds<-ggarrange(plotinf1, plotinf2, plotinf3, ncol=2, nrow = 2, common.legend = TRUE, legend = "right")
 
 plotnmds
-highqualgraphR(plotnmds,"nmds",extension = "tiff",
+highqualgraphR(plotnmds,"figure_3",extension = "tiff",
                family="Arial")
+
+
+
+
 
 
 ##############################################################################################################
@@ -1909,7 +1934,7 @@ pcrsum$min<-formatC( pcrtreat$min,  format = "e", digits = 2)
 ### Data visualization
 
 plot1<-ggplot(pcr, aes(x=treatment, y=meanrep, fill=treatment ))+geom_boxplot()+
-  ylab(expression("Number of gene copies µL"^-1 ))+
+  ylab(expression("Number of gene copies ÂµL"^-1 ))+
   scale_color_manual(values = c("red", "blue", "darkgreen")) +
   scale_fill_manual(values = c("red", "blue", "darkgreen"))+
   theme(text = element_text(size = 16, colour = "black"))+
@@ -1921,7 +1946,7 @@ plot1<-ggplot(pcr, aes(x=treatment, y=meanrep, fill=treatment ))+geom_boxplot()+
 
 
 plot2<-ggplot(pcr, aes(x=Period, y=meanrep, fill=Period ))+ geom_boxplot()+
-  ylab(expression("Number of gene copies µL"^-1 ))+ 
+  ylab(expression("Number of gene copies ÂµL"^-1 ))+ 
   scale_color_manual(values = c("red", "blue", "darkgreen")) + 
   theme(text = element_text(size = 16, colour = "black"))+
   theme( text=element_text(family="Arial", size=16),
